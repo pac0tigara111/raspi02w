@@ -26,10 +26,16 @@ except:
     font_main = ImageFont.load_default()
     font_small = ImageFont.load_default()
 
+def get_color(percent):
+    """Returns a color based on usage intensity."""
+    if percent > 80: return "RED"
+    if percent > 50: return "YELLOW"
+    return "LIME"
+
 def draw_bar(draw, x, y, width, height, percent, color):
-    # Background bar (grey)
-    draw.rectangle((x, y, x + width, y + height), outline="WHITE", fill="#333333")
-    # Foreground fill (colored)
+    # Background bar
+    draw.rectangle((x, y, x + width, y + height), outline="WHITE", fill="#222222")
+    # Foreground fill
     fill_width = (width * percent) / 100
     draw.rectangle((x, y, x + fill_width, y + height), fill=color)
 
@@ -45,38 +51,31 @@ image = Image.new("RGB", (disp.width, disp.height))
 draw = ImageDraw.Draw(image)
 
 while True:
-    # Get stats
     cpu = psutil.cpu_percent()
     mem = psutil.virtual_memory().percent
     disk = psutil.disk_usage('/').percent
     temp = psutil.sensors_temperatures()['cpu_thermal'][0].current
     ip = get_ip()
 
-    # Clear screen (dark background)
+    # Clear screen
     draw.rectangle((0, 0, disp.width, disp.height), fill="BLACK")
 
-    # Draw Header
-    draw.text((10, 10), "PI ZERO 2 W MONITOR", font=font_main, fill="WHITE")
-    draw.line((0, 40, 240, 40), fill="WHITE")
+    # Header with a subtle decorative element
+    draw.text((10, 10), "SYSTEM DASHBOARD", font=font_main, fill="WHITE")
+    draw.ellipse((210, 10, 225, 25), fill="LIME" if cpu < 80 else "RED") # Status "Light"
 
-    # Draw Metrics with bars
+    # Metrics
     y = 60
-    metrics = [
-        ("CPU", cpu, "RED"),
-        ("RAM", mem, "BLUE"),
-        ("DISK", disk, "GREEN")
-    ]
-
-    for label, val, color in metrics:
-        draw.text((10, y), f"{label}: {val}%", font=font_main, fill="WHITE")
-        draw_bar(draw, 80, y + 5, 140, 15, val, color)
+    for label, val in [("CPU", cpu), ("RAM", mem), ("DSK", disk)]:
+        draw.text((10, y), label, font=font_main, fill="WHITE")
+        draw_bar(draw, 60, y + 2, 160, 16, val, get_color(val))
         y += 50
 
-    # Draw Bottom Info
-    draw.text((10, 220), f"TEMP: {temp:.1f} C", font=font_main, fill="YELLOW")
-    draw.text((10, 260), f"IP: {ip}", font=font_small, fill="CYAN")
-    draw.text((10, 290), f"TIME: {time.strftime('%H:%M:%S')}", font=font_small, fill="WHITE")
+    # Footer section
+    draw.line((10, 210, 230, 210), fill="#444444")
+    draw.text((10, 230), f"TEMP: {temp:.1f} C", font=font_main, fill="CYAN")
+    draw.text((10, 265), f"IP: {ip}", font=font_small, fill="WHITE")
+    draw.text((10, 290), f"{time.strftime('%a, %d %b %H:%M')}", font=font_small, fill="GREY")
 
-    # Display to screen
     disp.image(image)
     time.sleep(1)
